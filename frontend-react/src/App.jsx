@@ -1,10 +1,12 @@
 import { useState, useRef, useCallback } from 'react'
 import { sendAudioToBackend } from './api/voiceApi'
 import { useVoiceRecorder } from './hooks/useVoiceRecorder'
+import { useSessionRecorder } from './hooks/useSessionRecorder'
 import TalkButton from './components/TalkButton'
 import StatusBar from './components/StatusBar'
 import ConversationLog from './components/ConversationLog'
 import DebugPanel from './components/DebugPanel'
+import RecordingsPage from './components/RecordingsPage'
 
 export default function App() {
   const [agentState, setAgentState] = useState('idle')
@@ -13,8 +15,13 @@ export default function App() {
   const [debugInfo, setDebugInfo] = useState({})
   const [errorMessage, setErrorMessage] = useState('')
   const [latencyInfo, setLatencyInfo] = useState(null)
+  const [currentPage, setCurrentPage] = useState('agent')
+  const [recordingStatus, setRecordingStatus] = useState('idle')
+  const [saveMessage, setSaveMessage] = useState('')
 
   const agentStateRef = useRef('idle')
+
+  const { isRecording, startRecording, stopRecording, uploadRecording } = useSessionRecorder()
 
   function updateAgentState(state) {
     agentStateRef.current = state
@@ -38,18 +45,15 @@ export default function App() {
 
       await sendAudioToBackend(blob, {
         onTranscript(transcript) {
-          // Always add user message first
           transcriptText = transcript
           setMessages((prev) => [...prev, { role: 'user', text: transcript }])
         },
 
         onTextChunk(chunk) {
           if (!agentMessageAdded) {
-            // First chunk: append a new agent message after the user message
             agentMessageAdded = true
             setMessages((prev) => [...prev, { role: 'agent', text: chunk }])
           } else {
-            // Subsequent chunks: append to the last message (always agent at this point)
             setMessages((prev) => {
               const updated = [...prev]
               const lastIdx = updated.length - 1
@@ -114,23 +118,126 @@ export default function App() {
 
   const handleStart = useCallback(async () => {
     setErrorMessage('')
+    setSaveMessage('')
     try {
       setIsSessionActive(true)
       await startSession()
     } catch (err) {
       setIsSessionActive(false)
       setErrorMessage(err.message)
+      return
     }
-  }, [startSession])
 
-  const handleStop = useCallback(() => {
+    // Start screen recording — non-blocking, failure doesn't stop conversation
+    try {
+      await startRecording()
+      setRecordingStatus('recording')
+    } catch (err) {
+      console.warn('Screen recording not started:', err.message)
+      // Don't show error to user — recording is optional
+    }
+  }, [startSession, startRecording])
+
+  const handleStop = useCallback(async () => {
     stopSession()
     setIsSessionActive(false)
     updateAgentState('idle')
-  }, [stopSession])
+
+    // Stop and upload recording if one was active
+    if (isRecording) {
+      try {
+        setRecordingStatus('uploading')
+        const blob = await stopRecording()
+        if (blob && blob.size > 0) {
+          await uploadRecording(blob)
+          setSaveMessage('Session saved to recordings')
+          setTimeout(() => setSaveMessage(''), 4000)
+        }
+      } catch (err) {
+        console.error('Recording stop/upload failed:', err)
+      } finally {
+        setRecordingStatus('idle')
+      }
+    }
+  }, [stopSession, isRecording, stopRecording, uploadRecording])
+
+  if (currentPage === 'recordings') {
+    return <RecordingsPage onBack={() => setCurrentPage('agent')} />
+  }
 
   return (
-    <div className="app">
+    <div className="app" style={{ position: 'relative' }}>
+
+      {/* REC indicator */}
+      {recordingStatus === 'recording' && (
+        <div style={{
+          position: 'absolute',
+          top: '16px',
+          left: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          fontSize: '12px',
+          fontWeight: 700,
+          color: '#ef4444',
+        }}>
+          <span style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: '#ef4444',
+            animation: 'recordingPulse 0.8s ease-in-out infinite',
+            display: 'inline-block',
+          }} />
+          REC
+        </div>
+      )}
+
+      {/* Uploading indicator */}
+      {recordingStatus === 'uploading' && (
+        <div style={{
+          position: 'absolute',
+          top: '16px',
+          left: '16px',
+          fontSize: '12px',
+          color: '#eab308',
+        }}>
+          Saving recording...
+        </div>
+      )}
+
+      {/* Save confirmation */}
+      {saveMessage && (
+        <div style={{
+          position: 'absolute',
+          top: '16px',
+          left: '16px',
+          fontSize: '12px',
+          color: '#22c55e',
+        }}>
+          ✓ {saveMessage}
+        </div>
+      )}
+
+      {/* Recordings button */}
+      <button
+        onClick={() => setCurrentPage('recordings')}
+        style={{
+          position: 'absolute',
+          top: '16px',
+          right: '16px',
+          background: '#1a1a1a',
+          border: '1px solid #333',
+          color: '#aaa',
+          padding: '6px 14px',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          fontSize: '13px',
+        }}
+      >
+        Recordings
+      </button>
+
       <h1 className="app-title">Voice Agent</h1>
       <StatusBar status={displayStatus} errorMessage={errorMessage} />
       <ConversationLog messages={messages} isTyping={agentState === 'processing'} />
