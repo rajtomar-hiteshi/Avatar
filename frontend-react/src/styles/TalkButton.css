@@ -1,0 +1,147 @@
+.talk-btn-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.talk-btn {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  outline: none;
+  transition: background 0.3s ease, transform 0.1s ease;
+}
+
+/* ── State colours ───────────────────────────── */
+
+.talk-btn.idle,
+.talk-btn.error {
+  background: #22c55e;
+}
+.talk-btn.idle:hover,
+.talk-btn.error:hover {
+  background: #16a34a;
+}
+
+.talk-btn.listening {
+  background: #3b82f6;
+  animation: listeningPulse 2s ease-out infinite;
+}
+
+.talk-btn.recording {
+  background: #ef4444;
+  animation: recordingPulse 0.8s ease-in-out infinite;
+}
+
+.talk-btn.processing {
+  background: #4b5563;
+  cursor: default;
+}
+
+.talk-btn.speaking {
+  background: #8b5cf6;
+  animation: speakingPulse 1.2s ease-in-out infinite;
+}
+
+/* ── Button text ─────────────────────────────── */
+
+.btn-label {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.3;
+  padding: 0 12px;
+}
+
+.btn-hint {
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.65;
+}
+
+/* ── Processing spinner ──────────────────────── */
+
+.btn-spinner {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* ── Volume bar ──────────────────────────────── */
+
+.volume-bar-track {
+  width: 120px;
+  height: 6px;
+  background: #333;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 10px;
+  transition: opacity 0.3s ease;
+}
+
+.volume-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.08s ease, background-color 0.08s ease;
+  min-width: 0;
+}
+
+/* ── Sensitivity slider ──────────────────────── */
+
+.sensitivity-control {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.sensitivity-label {
+  font-size: 11px;
+  color: #666;
+}
+
+.sensitivity-slider {
+  width: 140px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+/* ── Keyframes ───────────────────────────────── */
+
+@keyframes listeningPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6); }
+  70%  { box-shadow: 0 0 0 22px rgba(59, 130, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+
+@keyframes recordingPulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@keyframes speakingPulse {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
