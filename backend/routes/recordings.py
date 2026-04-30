@@ -1,4 +1,5 @@
 import os
+import subprocess
 import uuid
 from datetime import datetime
 
@@ -11,7 +12,6 @@ logger = get_logger(__name__)
 router = APIRouter()
 
 RECORDINGS_DIR = "/home/ubuntu/Avatar/recordings"
-# Local dev fallback
 if not os.path.exists("/home/ubuntu"):
     RECORDINGS_DIR = os.path.join(os.path.dirname(__file__), "../../recordings")
 
@@ -32,11 +32,40 @@ async def upload_recording(file: UploadFile = File(...)):
         size_mb = round(len(content) / (1024 * 1024), 2)
         logger.info(f"Recording: saved {filename} ({size_mb} MB)")
 
+        # Convert webm → mp4 for maximum playback compatibility
+        mp4_filename = filename.replace('.webm', '.mp4')
+        mp4_path = os.path.join(RECORDINGS_DIR, mp4_filename)
+
+        try:
+            result = subprocess.run([
+                'ffmpeg', '-i', filepath,
+                '-c:v', 'libx264',
+                '-c:a', 'aac',
+                '-strict', 'experimental',
+                '-y',
+                mp4_path
+            ], capture_output=True, text=True, timeout=300)
+
+            if result.returncode == 0:
+                os.remove(filepath)
+                logger.info(f"Recording: converted to mp4 — {mp4_filename}")
+                final_filename = mp4_filename
+                final_path = mp4_path
+            else:
+                logger.warning(f"Recording: ffmpeg failed, keeping webm — {result.stderr}")
+                final_filename = filename
+                final_path = filepath
+        except Exception as e:
+            logger.warning(f"Recording: ffmpeg not available, keeping webm — {e}")
+            final_filename = filename
+            final_path = filepath
+
         return JSONResponse({
             "success": True,
-            "filename": filename,
-            "size_mb": size_mb,
+            "filename": final_filename,
+            "size_mb": round(os.path.getsize(final_path) / (1024 * 1024), 2),
             "timestamp": timestamp,
+            "format": "mp4" if final_filename.endswith('.mp4') else "webm"
         })
     except Exception as e:
         logger.error(f"Recording upload failed: {e}")
@@ -48,7 +77,7 @@ async def list_recordings():
     try:
         files = []
         for fname in sorted(os.listdir(RECORDINGS_DIR), reverse=True):
-            if fname.endswith(".webm"):
+            if fname.endswith(".webm") or fname.endswith(".mp4"):
                 fpath = os.path.join(RECORDINGS_DIR, fname)
                 stat = os.stat(fpath)
                 files.append({
@@ -69,7 +98,8 @@ async def serve_recording(filename: str):
     filepath = os.path.join(RECORDINGS_DIR, filename)
     if not os.path.exists(filepath):
         return JSONResponse({"error": "File not found"}, status_code=404)
-    return FileResponse(filepath, media_type="video/webm", filename=filename)
+    media_type = "video/mp4" if filename.endswith(".mp4") else "video/webm"
+    return FileResponse(filepath, media_type=media_type, filename=filename)
 
 
 @router.delete("/delete/{filename}")

@@ -1,4 +1,4 @@
-export async function sendAudioToBackend(blob, callbacks = {}) {
+export async function sendAudioToBackend(blob, callbacks = {}, playAudioFn) {
   const { onTranscript, onTextChunk, onAudioChunk, onDone, onPlaybackComplete, onError } = callbacks
 
   const formData = new FormData()
@@ -20,37 +20,37 @@ export async function sendAudioToBackend(blob, callbacks = {}) {
   let isPlaying = false
   let isDone = false
 
-  function playNextChunk() {
-    // Queue empty and stream finished — notify caller
-    if (audioQueue.length === 0 && !isPlaying) {
-      if (isDone) onPlaybackComplete?.()
+  async function playNextChunk() {
+    if (isPlaying || audioQueue.length === 0) {
+      if (isDone && audioQueue.length === 0 && !isPlaying) {
+        onPlaybackComplete?.()
+      }
       return
     }
-    if (isPlaying || audioQueue.length === 0) return
 
     isPlaying = true
     const audioBlob = audioQueue.shift()
-    const url = URL.createObjectURL(audioBlob)
-    const audio = new Audio(url)
 
     onAudioChunk?.()
 
-    audio.onended = () => {
-      URL.revokeObjectURL(url)
-      isPlaying = false
-      playNextChunk()
+    try {
+      if (typeof playAudioFn === 'function') {
+        await playAudioFn(audioBlob)
+      } else {
+        const url = URL.createObjectURL(audioBlob)
+        await new Promise((resolve) => {
+          const audio = new Audio(url)
+          audio.onended = () => { URL.revokeObjectURL(url); resolve() }
+          audio.onerror = () => { URL.revokeObjectURL(url); resolve() }
+          audio.play().catch(() => resolve())
+        })
+      }
+    } catch (err) {
+      console.error("playNextChunk error:", err)
     }
-    audio.onerror = (e) => {
-      console.error('Audio chunk playback error:', e)
-      URL.revokeObjectURL(url)
-      isPlaying = false
-      playNextChunk()
-    }
-    audio.play().catch((e) => {
-      console.error('Audio play() failed:', e)
-      isPlaying = false
-      playNextChunk()
-    })
+
+    isPlaying = false
+    playNextChunk()
   }
 
   const reader = response.body.getReader()
@@ -85,7 +85,6 @@ export async function sendAudioToBackend(blob, callbacks = {}) {
         const fullReply = payload.slice(5)
         isDone = true
         onDone?.(fullReply)
-        // Trigger completion check in case queue is already empty
         playNextChunk()
 
       } else if (payload.startsWith('ERROR:')) {

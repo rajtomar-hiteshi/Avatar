@@ -21,7 +21,7 @@ export default function App() {
 
   const agentStateRef = useRef('idle')
 
-  const { isRecording, startRecording, stopRecording, uploadRecording } = useSessionRecorder()
+  const { isRecording, recordingStatus: sessionRecordingStatus, startRecording, stopRecording, uploadRecording, playAgentAudio } = useSessionRecorder()
 
   function updateAgentState(state) {
     agentStateRef.current = state
@@ -95,7 +95,7 @@ export default function App() {
           setErrorMessage(err.message)
           setDebugInfo((prev) => ({ ...prev, error: err.message }))
         },
-      })
+      }, playAgentAudio)
     } catch (err) {
       updateAgentState('idle')
       setErrorMessage(err.message)
