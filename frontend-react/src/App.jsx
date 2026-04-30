@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react'
 import { sendAudioToBackend } from './api/voiceApi'
 import { useVoiceRecorder } from './hooks/useVoiceRecorder'
 import { useSessionRecorder } from './hooks/useSessionRecorder'
+import { useLiveKit } from './hooks/useLiveKit'
 import TalkButton from './components/TalkButton'
 import StatusBar from './components/StatusBar'
 import ConversationLog from './components/ConversationLog'
@@ -22,6 +23,7 @@ export default function App() {
   const agentStateRef = useRef('idle')
 
   const { isRecording, recordingStatus: sessionRecordingStatus, startRecording, stopRecording, uploadRecording, playAgentAudio } = useSessionRecorder()
+  const { lkStatus, lkError, connectLiveKit, disconnectLiveKit } = useLiveKit()
 
   function updateAgentState(state) {
     agentStateRef.current = state
@@ -237,6 +239,39 @@ export default function App() {
       >
         Recordings
       </button>
+
+      {/* ── LiveKit panel ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', justifyContent: 'center' }}>
+        <span style={{
+          fontSize: '12px',
+          fontWeight: 600,
+          color: lkStatus === 'connected' ? '#22c55e' : lkStatus === 'connecting' ? '#eab308' : lkStatus === 'error' ? '#ef4444' : '#888',
+        }}>
+          LiveKit: {lkStatus}
+        </span>
+        {lkStatus === 'disconnected' || lkStatus === 'error' ? (
+          <button
+            onClick={() => connectLiveKit()}
+            style={{
+              background: '#1a1a1a', border: '1px solid #444', color: '#ccc',
+              padding: '4px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px',
+            }}
+          >
+            Connect
+          </button>
+        ) : (
+          <button
+            onClick={disconnectLiveKit}
+            style={{
+              background: '#1a1a1a', border: '1px solid #444', color: '#ccc',
+              padding: '4px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px',
+            }}
+          >
+            Disconnect
+          </button>
+        )}
+        {lkError && <span style={{ fontSize: '11px', color: '#ef4444' }}>{lkError}</span>}
+      </div>
 
       <h1 className="app-title">Voice Agent</h1>
       <StatusBar status={displayStatus} errorMessage={errorMessage} />

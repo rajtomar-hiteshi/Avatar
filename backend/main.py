@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.logger import get_logger
 from backend.routes import voice as voice_router
 from backend.routes import recordings as recordings_router
+from backend.routes import livekit_token as livekit_token_router
 
 logger = get_logger(__name__)
 
@@ -40,6 +41,7 @@ async def log_requests(request: Request, call_next):
 
 app.include_router(voice_router.router)
 app.include_router(recordings_router.router, prefix="/recordings")
+app.include_router(livekit_token_router.router)  # GET /livekit-token
 
 
 if __name__ == "__main__":
