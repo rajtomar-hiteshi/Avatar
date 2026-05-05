@@ -10,6 +10,7 @@ export default defineConfig({
       '/health': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/admin': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/avatar': { target: 'http://127.0.0.1:8000', changeOrigin: true },
+      '/proxy': { target: 'http://127.0.0.1:8000', changeOrigin: true },
     },
   },
   build: {

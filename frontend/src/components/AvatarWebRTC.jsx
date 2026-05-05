@@ -62,7 +62,7 @@ export default function AvatarWebRTC({ runpodUrl, active, onStatusChange }) {
       const offer = await pc.createOffer()
       await pc.setLocalDescription(offer)
 
-      const res = await fetch(`${runpodUrl}/offer`, {
+      const res = await fetch(`/proxy/offer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sdp: offer.sdp, type: offer.type }),

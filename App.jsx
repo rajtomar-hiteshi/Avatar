@@ -20,6 +20,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState('agent')
   const [recordingStatus, setRecordingStatus] = useState('idle')
   const [saveMessage, setSaveMessage] = useState('')
+  const [videoChunk, setVideoChunk] = useState(null)
   const [selectedAvatar, setSelectedAvatar] = useState('avatar_1.jpg')
   const [videoChunks, setVideoChunks] = useState([])
 
@@ -47,7 +48,6 @@ export default function App() {
 
     try {
       updateAgentState('processing')
-      setVideoChunks([])
 
       await sendAudioToBackend(blob, {
         onTranscript(transcript) {
@@ -96,16 +96,14 @@ export default function App() {
           agentMessageAdded = false
         },
 
-        onVideoChunk(videoB64) {
-          setVideoChunks((prev) => [...prev, videoB64])
-        },
+        onVideoChunk: (v) => setVideoChunk(v),
 
         onError(err) {
           updateAgentState('idle')
           setErrorMessage(err.message)
           setDebugInfo((prev) => ({ ...prev, error: err.message }))
         },
-      }, playAgentAudio, selectedAvatar)
+      }, playAgentAudio)
     } catch (err) {
       updateAgentState('idle')
       setErrorMessage(err.message)
@@ -182,6 +180,7 @@ export default function App() {
         onAvatarChange={setSelectedAvatar}
         videoChunks={videoChunks}
         isSessionActive={isSessionActive}
+        videoChunk={videoChunk}
       />
 
       {/* REC indicator */}

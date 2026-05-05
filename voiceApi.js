@@ -1,11 +1,10 @@
-export async function sendAudioToBackend(blob, callbacks = {}, playAudioFn, avatarFilename = 'avatar_1.jpg') {
-  const { onTranscript, onTextChunk, onAudioChunk, onVideoChunk, onDone, onPlaybackComplete, onError } = callbacks
+export async function sendAudioToBackend(blob, callbacks = {}, playAudioFn) {
+  const { onTranscript, onTextChunk, onAudioChunk, onDone, onPlaybackComplete, onError } = callbacks
 
   const formData = new FormData()
   formData.append('audio', blob, 'recording.webm')
 
-  const url = `/voice/process?avatar=${encodeURIComponent(avatarFilename)}`
-  const response = await fetch(url, {
+  const response = await fetch('/voice/process', {
     method: 'POST',
     body: formData,
   })
@@ -83,8 +82,8 @@ export async function sendAudioToBackend(blob, callbacks = {}, playAudioFn, avat
         playNextChunk()
 
       } else if (payload.startsWith('VIDEO:')) {
-        const videoB64 = payload.slice(6)
-        onVideoChunk?.(videoB64)
+          const videoB64 = payload.slice(6)
+          callbacks.onVideoChunk?.(videoB64)
 
       } else if (payload.startsWith('DONE:')) {
         const fullReply = payload.slice(5)

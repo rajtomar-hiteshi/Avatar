@@ -1,5 +1,5 @@
 import httpx
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from backend.logger import get_logger
@@ -36,4 +36,32 @@ async def avatar_session():
             return JSONResponse(content=response.json(), status_code=response.status_code)
     except Exception as exc:
         logger.error(f"Avatar session proxy error: {exc}")
+        return JSONResponse({"error": str(exc)}, status_code=502)
+
+
+@router.post("/proxy/offer")
+async def proxy_offer(request: Request):
+    if not state.runpod_url:
+        return JSONResponse({"error": "RunPod URL not set"}, status_code=503)
+    try:
+        body = await request.json()
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(f"{state.runpod_url}/offer", json=body)
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+    except Exception as exc:
+        logger.error(f"Proxy /offer error: {exc}")
+        return JSONResponse({"error": str(exc)}, status_code=502)
+
+
+@router.post("/proxy/human")
+async def proxy_human(request: Request):
+    if not state.runpod_url:
+        return JSONResponse({"error": "RunPod URL not set"}, status_code=503)
+    try:
+        body = await request.json()
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(f"{state.runpod_url}/human", json=body)
+            return JSONResponse(content=response.json(), status_code=response.status_code)
+    except Exception as exc:
+        logger.error(f"Proxy /human error: {exc}")
         return JSONResponse({"error": str(exc)}, status_code=502)
