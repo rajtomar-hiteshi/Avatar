@@ -33,9 +33,9 @@ export default function AvatarWebRTC({ runpodUrl, active, onStatusChange }) {
       })
       pcRef.current = pc
 
-      // Receive video + audio from RunPod avatar stream
-      pc.addTransceiver('video', { direction: 'recvonly' })
-      pc.addTransceiver('audio', { direction: 'recvonly' })
+      // Use sendrecv — aiortc crashes on recvonly direction negotiation
+      pc.addTransceiver('video', { direction: 'sendrecv' })
+      pc.addTransceiver('audio', { direction: 'sendrecv' })
 
       const streams = {}
 
