@@ -17,6 +17,7 @@ async def health():
 @router.get("/admin/set-pod-url")
 async def set_pod_url(url: str):
     state.runpod_url = url.rstrip("/")
+    state._save_runpod_url(state.runpod_url)
     logger.info(f"RunPod URL set to: {state.runpod_url}")
     return {"status": "ok", "runpod_url": state.runpod_url}
 
