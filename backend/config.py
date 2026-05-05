@@ -2,8 +2,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# 🔥 --- LOAD ENV FIRST (CRITICAL) ---
-BASE_DIR = Path(__file__).resolve().parents[1]  # project root (AI/)
+BASE_DIR = Path(__file__).resolve().parents[1]
 ENV_PATH = BASE_DIR / ".env"
 
 if not ENV_PATH.exists():
@@ -11,40 +10,30 @@ if not ENV_PATH.exists():
 
 load_dotenv(dotenv_path=ENV_PATH)
 
-# 🔍 Debug (optional, remove later)
-print(f"[CONFIG] .env loaded from: {ENV_PATH}")
-
-# --- Import logger AFTER env is loaded ---
 from backend.logger import get_logger
 _logger = get_logger(__name__)
 
-# --- Helper function ---
+
 def _get_env(key: str, required: bool = True) -> str:
     value = os.getenv(key, "").strip()
     if required and not value:
-        raise ValueError(f"Missing required environment variable: {key}")
+        raise ValueError(f"Missing required env var: {key}")
     return value
 
-# --- REQUIRED KEYS ---
+
 GROQ_API_KEY: str = _get_env("GROQ_API_KEY")
 ELEVENLABS_API_KEY: str = _get_env("ELEVENLABS_API_KEY")
 ELEVENLABS_VOICE_ID: str = _get_env("ELEVENLABS_VOICE_ID")
 
-for _key_name, _value in [
+# Optional seed — overridable at runtime via GET /admin/set-pod-url
+RUNPOD_URL: str = _get_env("RUNPOD_URL", required=False)
+
+for _k, _v in [
     ("GROQ_API_KEY", GROQ_API_KEY),
     ("ELEVENLABS_API_KEY", ELEVENLABS_API_KEY),
     ("ELEVENLABS_VOICE_ID", ELEVENLABS_VOICE_ID),
 ]:
-    _logger.info(f"Config: {_key_name}=SET ({len(_value)} chars)")
+    _logger.info(f"Config: {_k}=SET ({len(_v)} chars)")
 
-# --- LIVEKIT (NOW REQUIRED FOR YOUR SYSTEM) ---
-LIVEKIT_URL: str = _get_env("LIVEKIT_URL")
-LIVEKIT_API_KEY: str = _get_env("LIVEKIT_API_KEY")
-LIVEKIT_API_SECRET: str = _get_env("LIVEKIT_API_SECRET")
-
-for _key_name, _value in [
-    ("LIVEKIT_URL", LIVEKIT_URL),
-    ("LIVEKIT_API_KEY", LIVEKIT_API_KEY),
-    ("LIVEKIT_API_SECRET", LIVEKIT_API_SECRET),
-]:
-    _logger.info(f"Config: {_key_name}=SET ({len(_value)} chars)")
+if RUNPOD_URL:
+    _logger.info(f"Config: RUNPOD_URL={RUNPOD_URL}")

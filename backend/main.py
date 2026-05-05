@@ -7,26 +7,25 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.logger import get_logger
 from backend.routes import voice as voice_router
-from backend.routes import recordings as recordings_router
-from backend.routes import livekit_token as livekit_token_router
+from backend.routes import admin as admin_router
 
 logger = get_logger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Voice Agent started on http://0.0.0.0:8000")
+    logger.info("Avatar Voice Agent started — http://0.0.0.0:8000")
     yield
 
 
-app = FastAPI(title="Voice Agent", lifespan=lifespan)
+app = FastAPI(title="Avatar Voice Agent", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Transcript", "X-Reply"],
+    expose_headers=["*"],
 )
 
 
@@ -40,8 +39,7 @@ async def log_requests(request: Request, call_next):
 
 
 app.include_router(voice_router.router)
-app.include_router(recordings_router.router, prefix="/recordings")
-app.include_router(livekit_token_router.router)  # GET /livekit-token
+app.include_router(admin_router.router)
 
 
 if __name__ == "__main__":
